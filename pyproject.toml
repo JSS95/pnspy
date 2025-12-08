@@ -34,16 +34,23 @@ dependencies = [
 [project.urls]
 homepage = "https://pypi.python.org/pypi/pypns/"
 source = "https://github.com/JSS95/pypns"
+documentation = "https://pypns.readthedocs.io"
 
 [project.optional-dependencies]
 test = [
     "pytest",
 ]
+doc = [
+    "sphinx",
+    "numpydoc",
+    "pydata_sphinx_theme",
+    "matplotlib",
+]
 dev = [
     "flake8",
     "black",
     "isort",
-    "pypns[test]"
+    "pypns[test,doc]"
 ]
 
 [tool.setuptools.packages.find]
