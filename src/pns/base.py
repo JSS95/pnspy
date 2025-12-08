@@ -4,6 +4,7 @@ import numpy as np
 
 __all__ = [
     "rotation_matrix",
+    "project",
 ]
 
 
@@ -53,3 +54,53 @@ def rotation_matrix(v):
     Id = np.eye(len(A))
     R = Id + np.sin(theta) * A + (np.cos(theta) - 1) * (np.outer(a, a) + np.outer(c, c))
     return R.astype(np.float64)
+
+
+def project(x, v, r):
+    r"""Minimum-geodesic projection of points to a subsphere.
+
+    Parameters
+    ----------
+    x : (N, m+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        embedded in a ``d+1``-dimensional space.
+    v : (m+1,) real array
+        Subsphere axis.
+    r : scalar
+        Subsphere geodesic distance.
+
+    Returns
+    -------
+    xP : (N, m+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        projected onto the found principal subsphere.
+    res : (N, 1) real array
+        Projection residuals.
+
+    Notes
+    -----
+    This is the function
+    :math:`P: S^{d-k+1} \to A_{d-k}(v_k, r_k ) \subset S^{d-k+1}` for
+    :math:`k = 1, 2, \ldots, d` in the original paper.
+    Here, :math:`A_{d-k}(v_k, r_k)` is a subsphere of the hypersphere :math:`S^{d-k+1}`.
+    The input and output data dimension are :math:`m+1`, where :math:`m = d-k+1`.
+
+    The resulting points have same number of components but their rank is reduced
+    by one in the manifold.
+    Examples
+    --------
+    >>> from pns.base import project
+    >>> from pns.util import unit_sphere, circular_data
+    >>> x = circular_data()
+    >>> A, _ = project(x, [0, 0, 1], 0.5)
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
+    ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax.scatter(*x.T, marker="x")
+    ... ax.scatter(*A.T, marker=".")
+    """
+    if x.shape[1] > 2:
+        rho = np.arccos(x @ v)[..., np.newaxis]
+    elif x.shape[1] == 2:
+        rho = np.arctan2(x @ (v @ [[0, 1], [-1, 0]]), x @ v)[..., np.newaxis]
+    return (np.sin(r) * x + np.sin(rho - r) * v) / np.sin(rho), rho - r

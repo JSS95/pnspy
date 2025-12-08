@@ -47,7 +47,8 @@ def circular_data():
     ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
     ... ax.scatter(*circular_data().T)
     """
-    t = np.random.uniform(0.1 * np.pi, 0.2 * np.pi, 100)
-    p = np.random.uniform(-np.pi, np.pi / 2, 100)
-    x = np.array([np.sin(t) * np.cos(p), np.sin(t) * np.sin(p), np.cos(t)]).T
+    t = np.linspace(0.1 * np.pi, 0.2 * np.pi, 10)
+    p = np.linspace(-np.pi, np.pi / 2, 10)
+    T, P = np.meshgrid(t, p)
+    x = np.array([np.sin(T) * np.cos(P), np.sin(T) * np.sin(P), np.cos(T)]).T
     return x
