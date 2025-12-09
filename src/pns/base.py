@@ -98,6 +98,7 @@ def project(x, v, r):
 
     The resulting points have same number of components but their rank is reduced
     by one in the manifold.
+
     Examples
     --------
     >>> from pns.base import project
