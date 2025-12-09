@@ -1,4 +1,4 @@
-"""Python implementation of PNS."""
+"""Basic functions to handle data on a hypersphere."""
 
 import numpy as np
 
@@ -6,6 +6,8 @@ __all__ = [
     "rotation_matrix",
     "project",
     "embed",
+    "exp_map",
+    "log_map",
 ]
 
 
@@ -160,3 +162,37 @@ def embed(x, v, r):
     """
     R = rotation_matrix(v)
     return x @ (1 / np.sin(r) * R[:-1:, :]).T
+
+
+def exp_map(z):
+    """Exponential map of hypersphere at (0, 0, ..., 0, 1).
+
+    Parameters
+    ----------
+    z : (N, d) real array
+        Vectors on tangent space.
+
+    Returns
+    -------
+    (N, d+1) real array
+        Points on d-sphere.
+    """
+    norm = np.linalg.norm(z, axis=1)[..., np.newaxis]
+    return np.hstack([np.sin(norm) / norm * z, np.cos(norm)])
+
+
+def log_map(x):
+    """Log map of hypersphere at (0, 0, ..., 0, 1).
+
+    Parameters
+    ----------
+    x : (N, d+1) real array
+        Points on d-sphere.
+
+    Returns
+    -------
+    (N, d) real array
+        Vectors on tangent space.
+    """
+    thetas = np.arccos(x[:, -1:])
+    return thetas / np.sin(thetas) * x[:, :-1]

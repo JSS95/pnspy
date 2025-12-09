@@ -11,8 +11,8 @@ scikit-pns documentation
 Module reference
 ================
 
-Low-level functions
--------------------
+Hypersphere functions
+---------------------
 
 .. automodule:: pns.base
     :members:
