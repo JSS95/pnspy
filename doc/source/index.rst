@@ -17,6 +17,12 @@ Hypersphere functions
 .. automodule:: pns.base
     :members:
 
+Principal subsphere
+-------------------
+
+.. automodule:: pns.pss
+    :members:
+
 Utilities
 ---------
 
