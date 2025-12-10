@@ -80,7 +80,7 @@ jobs:
 
       - name: install package
         run: |
-          pip install .[doc]
+          pip install .[scipy,doc]
 
       - name: build document
         run: |
