@@ -34,7 +34,7 @@ jobs:
         run: |
           isort --check .
 
-  unit-test:
+  test-scipy:
 
     needs: lint
 
@@ -58,13 +58,13 @@ jobs:
 
       - name: install package
         run: |
-          pip install .[test]
+          pip install .[scipy,test]
 
       - run: pytest
 
   doc:
 
-    needs: unit-test
+    needs: test-scipy
 
     runs-on: ubuntu-latest
 

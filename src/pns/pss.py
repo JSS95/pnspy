@@ -1,8 +1,20 @@
 """Detect the principal subsphere."""
 
+import warnings
+
+import numpy as np
+
+from .base import exp_map, log_map, rotation_matrix
+
 __all__ = [
     "pss",
 ]
+
+
+try:
+    from scipy.optimize import least_squares
+except ModuleNotFoundError:
+    raise NotImplementedError
 
 
 def pss(x, tol=1e-3, maxiter=None):
@@ -34,5 +46,71 @@ def pss(x, tol=1e-3, maxiter=None):
 
     The Fréchet mean :math:`\hat{A}_0` of the lowest level best fitting subsphere
     :math:`\hat{A}_1` is also determined by this function.
+
+    Examples
+    --------
+    >>> from pns.pss import pss
+    >>> from pns.util import unit_sphere, circular_data, circle_3d
+    >>> x = circular_data()
+    >>> v, r = pss(x.reshape(-1, x.shape[-1]))
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
+    ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax.scatter(*x.T, marker="x")
+    ... ax.plot(*circle_3d(v, r), color="tab:orange", zorder=10)
     """
-    raise NotImplementedError
+    _, D = x.shape
+    if D <= 1:
+        raise ValueError("Data must be on at least 1-sphere.")
+    elif D == 2:
+        r = np.int_(0)
+        v = np.mean(x, axis=0)
+        norm = np.linalg.norm(v)
+        if norm != 0:
+            v /= norm
+        else:
+            v = np.array([1, 0])
+    else:
+        pole = np.array([0] * (D - 1) + [1])
+        R = np.eye(D)
+        _x = x
+        v, r = _pss(_x)
+
+        iter_count = 0
+        while np.arccos(np.dot(pole, v)) > tol:
+            if iter_count == maxiter:
+                warnings.warn(
+                    f"Maximum number of iterations ({maxiter}) reached. "
+                    "Optimization may not have converged.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                break
+
+            # Rotate so that v becomes the pole
+            _x, _R = rotation_matrix(_x, v)
+            v, r = _pss(_x)
+            R = R @ _R.T
+            iter_count += 1
+
+        v = R @ v  # re-rotate back
+    return v.astype(x.dtype), r.astype(x.dtype)
+
+
+def _pss(pts):
+    # Projection
+    x_dag = log_map(pts)
+    v_dag_init = np.mean(x_dag, axis=0)
+    r_init = np.mean(np.linalg.norm(x_dag - v_dag_init, axis=1))
+    init = np.concatenate([v_dag_init, [r_init]])
+    # Optimization
+    opt = least_squares(_loss, init, args=(x_dag,), method="lm").x
+    v_dag_opt, r_opt = opt[:-1], opt[-1]
+    v_opt = exp_map(v_dag_opt.reshape(1, -1)).reshape(-1)
+    r_opt = np.mod(r_opt, np.pi)
+    return v_opt, r_opt
+
+
+def _loss(params, x_dag):
+    v_dag, r = params[:-1], params[-1]
+    return np.linalg.norm(x_dag - v_dag.reshape(1, -1), axis=1) - r

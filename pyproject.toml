@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "numpy", "meson", "ninja"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -37,6 +37,9 @@ source = "https://github.com/JSS95/pypns"
 documentation = "https://pypns.readthedocs.io"
 
 [project.optional-dependencies]
+scipy = [
+    "scipy",
+]
 test = [
     "pytest",
 ]
