@@ -22,6 +22,12 @@ Principal subsphere
 .. automodule:: pns.pss
     :members:
 
+Data transformation
+-------------------
+
+.. automodule:: pns.transform
+    :members:
+
 Utilities
 ---------
 

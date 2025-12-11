@@ -1,4 +1,4 @@
-"""Utility functions to generate sample data."""
+"""Utility functions to generate and plot sample data."""
 
 import numpy as np
 
