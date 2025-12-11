@@ -1,5 +1,7 @@
 """Interface for minpack lmder, copied and adapted from SciPy."""
 
+import numpy as np
+
 __all__ = [
     "least_squares",
 ]
@@ -22,15 +24,9 @@ def least_squares(
         ``fun(x, *args, **kwargs)``, i.e., the minimization proceeds with
         respect to its first argument. The argument ``x`` passed to this
         function is an ndarray of shape (n,) (never a scalar, even for n=1).
-        It must allocate and return a 1-D array_like of shape (m,) or a scalar.
-        If the argument ``x`` is complex or the function ``fun`` returns
-        complex residuals, it must be wrapped in a real function of real
-        arguments, as shown at the end of the Examples section.
-    x0 : array_like with shape (n,) or float
-        Initial guess on independent variables. If float, it will be treated
-        as a 1-D array with one element. When `method` is 'trf', the initial
-        guess might be slightly adjusted to lie sufficiently within the given
-        `bounds`.
+        It must allocate and return a 1-D numpy array of shape (m,).
+    x0 : numpy array with shape (n,) with datatype float
+        Initial guess on independent variables. Must be array, even for n=1.
     jac : callable
         Function which computes the Jacobian matrix (an m-by-n matrix, where
         element (i, j) is the partial derivative of f[i] with respect to
