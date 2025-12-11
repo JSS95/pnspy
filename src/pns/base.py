@@ -6,7 +6,6 @@ __all__ = [
     "rotation_matrix",
     "exp_map",
     "log_map",
-    "embed",
 ]
 
 
@@ -98,50 +97,3 @@ def log_map(x):
     """
     thetas = np.arccos(x[:, -1:])
     return thetas / np.sin(thetas) * x[:, :-1]
-
-
-def embed(x, v, r):
-    r"""Embed data on a sub-hypersphere to a low-dimensional unit hypersphere.
-
-    Parameters
-    ----------
-    x : (N, m+1) real array
-        Data :math:`x \in A_{m-1} \subset S^m \subset \mathbb{R}^{m+1}`,
-        on a subsphere :math:`A_{m-1}` of a unit hypersphere :math:`S^m`.
-    v : (m+1,) real array
-        Sub-hypersphere axis.
-    r : scalar
-        Sub-hypersphere geodesic distance.
-
-    Returns
-    -------
-    (N, m) real array
-        Data :math:`x^\dagger` on a low-dimensional unit hypersphere :math:`S^{m-1}`.
-
-    Notes
-    -----
-    This is the function
-    :math:`f_k: A_{d-k}(v_k, r_k) \subset S^{d-k+1} \to S^{d-k}` for
-    :math:`k = 1, 2, \ldots, d-1` in the original paper.
-    Here, :math:`A_{d-k}(v_k, r_k)` is a subsphere of the hypersphere :math:`S^{d-k+1}`.
-    The input is :math:`x \in S^m \subset \mathbb{R}^{m+1}`
-    and the output is :math:`x^\dagger \in S^{m-1} \subset \mathbb{R}^{m}`,
-    where :math:`m = d-k+1`.
-
-    Examples
-    --------
-    >>> from pns.base import embed
-    >>> from pns.util import unit_sphere, circular_data
-    >>> x = circular_data()
-    >>> x_embed = embed(x, [0, 0, 1], 0.5)
-    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-    ... fig = plt.figure()
-    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
-    ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax1.scatter(*x.T, marker=".", zorder=10)
-    ... ax2 = fig.add_subplot(122)
-    ... ax2.scatter(*x_embed.T, marker=".", zorder=10)
-    ... ax2.set_aspect("equal")
-    """
-    R = rotation_matrix(v)
-    return x @ (1 / np.sin(r) * R[:-1:, :]).T
