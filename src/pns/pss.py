@@ -3,9 +3,9 @@
 import warnings
 
 import numpy as np
+from scipy.optimize import least_squares
 
 from .base import exp_map, log_map, rotation_matrix
-from .lmder import least_squares
 
 __all__ = [
     "pss",
@@ -99,25 +99,29 @@ def _pss(pts):
     r_init = np.mean(np.linalg.norm(x_dag - v_dag_init, axis=1))
     init = np.concatenate([v_dag_init, [r_init]])
     # Optimization
-    opt = least_squares(_res, init, _jac, args=(x_dag,))
+    opt = least_squares(_res, init, _jac, method="lm", args=(x_dag,)).x
     v_dag_opt, r_opt = opt[:-1], opt[-1]
     v_opt = exp_map(v_dag_opt.reshape(1, -1)).reshape(-1)
     r_opt = np.mod(r_opt, np.pi)
     return v_opt, r_opt
 
 
-def _res(params, x_dag, out):
+def _res(params, x_dag):
     v_dag, r = params[:-1].reshape(1, -1), params[-1]
     diff = x_dag - v_dag
     dist = np.linalg.norm(diff, axis=1)
-    out[:] = dist - r
+    return dist - r
 
 
-def _jac(params, x_dag, out):
+def _jac(params, x_dag):
+    n = len(x_dag)
+    m = len(params)
     v_dag = params[:-1].reshape(1, -1)
     diff = x_dag - v_dag
     dist = np.linalg.norm(diff, axis=1)
     mask = dist > 1e-12
+    out = np.empty((n, m), dtype=float)
     out[mask, :-1] = -diff[mask] / dist[mask][:, None]
     out[~mask, :-1] = 0.0
     out[:, -1] = -1.0
+    return out
