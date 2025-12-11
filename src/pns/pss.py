@@ -5,16 +5,11 @@ import warnings
 import numpy as np
 
 from .base import exp_map, log_map, rotation_matrix
+from .lmder import lmder
 
 __all__ = [
     "pss",
 ]
-
-
-try:
-    from scipy.optimize import least_squares
-except ModuleNotFoundError:
-    raise NotImplementedError
 
 
 def pss(x, tol=1e-3, maxiter=None):
@@ -104,13 +99,25 @@ def _pss(pts):
     r_init = np.mean(np.linalg.norm(x_dag - v_dag_init, axis=1))
     init = np.concatenate([v_dag_init, [r_init]])
     # Optimization
-    opt = least_squares(_loss, init, args=(x_dag,), method="lm").x
+    opt = lmder(_res, _jac, init, (x_dag,))
     v_dag_opt, r_opt = opt[:-1], opt[-1]
     v_opt = exp_map(v_dag_opt.reshape(1, -1)).reshape(-1)
     r_opt = np.mod(r_opt, np.pi)
     return v_opt, r_opt
 
 
-def _loss(params, x_dag):
-    v_dag, r = params[:-1], params[-1]
-    return np.linalg.norm(x_dag - v_dag.reshape(1, -1), axis=1) - r
+def _res(params, x_dag, out):
+    v_dag, r = params[:-1].reshape(1, -1), params[-1]
+    diff = x_dag - v_dag
+    dist = np.linalg.norm(diff, axis=1)
+    out[:] = dist - r
+
+
+def _jac(params, x_dag, out):
+    v_dag = params[:-1].reshape(1, -1)
+    diff = x_dag - v_dag
+    dist = np.linalg.norm(diff, axis=1)
+    mask = dist > 1e-12
+    out[mask, :-1] = -diff[mask] / dist[mask][:, None]
+    out[~mask, :-1] = 0.0
+    out[:, -1] = -1.0
