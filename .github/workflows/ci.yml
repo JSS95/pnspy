@@ -64,7 +64,7 @@ jobs:
 
   doc:
 
-    needs: unit-test
+    needs: [unit-test]
 
     runs-on: ubuntu-latest
 

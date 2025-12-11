@@ -7,7 +7,6 @@
 scikit-pns documentation
 ************************
 
-
 Module reference
 ================
 
@@ -15,6 +14,12 @@ Hypersphere functions
 ---------------------
 
 .. automodule:: pns.base
+    :members:
+
+Principal subsphere
+-------------------
+
+.. automodule:: pns.pss
     :members:
 
 Utilities
