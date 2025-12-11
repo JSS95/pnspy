@@ -1,4 +1,4 @@
-"""Detect the principal subsphere."""
+"""Detect the principal subsphere by optimization."""
 
 import warnings
 
