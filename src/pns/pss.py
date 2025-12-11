@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 
 from .base import exp_map, log_map, rotation_matrix
-from .lmder import lmder
+from .lmder import least_squares
 
 __all__ = [
     "pss",
@@ -99,7 +99,7 @@ def _pss(pts):
     r_init = np.mean(np.linalg.norm(x_dag - v_dag_init, axis=1))
     init = np.concatenate([v_dag_init, [r_init]])
     # Optimization
-    opt = lmder(_res, _jac, init, (x_dag,))
+    opt = least_squares(_res, init, _jac, args=(x_dag,))
     v_dag_opt, r_opt = opt[:-1], opt[-1]
     v_opt = exp_map(v_dag_opt.reshape(1, -1)).reshape(-1)
     r_opt = np.mod(r_opt, np.pi)
