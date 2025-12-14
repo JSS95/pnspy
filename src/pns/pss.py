@@ -49,7 +49,7 @@ def pss(x, tol=1e-3, maxiter=None, lm_kwargs=None):
     --------
     >>> from pns.pss import pss
     >>> from pns.util import unit_sphere, circular_data, circle_3d
-    >>> x = circular_data()
+    >>> x = circular_data([0, -1, 0])
     >>> v, r = pss(x.reshape(-1, x.shape[-1]))
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
@@ -93,14 +93,18 @@ def pss(x, tol=1e-3, maxiter=None, lm_kwargs=None):
                 break
 
             # Rotate so that v becomes the pole
-            _R = rotation_matrix(v)
-            _x = _x @ R.T
+            _x, _R = _rotate(_x, v)
             v, r = _pss(_x, lm_kwargs=lm_kwargs)
             R = R @ _R.T
             iter_count += 1
 
         v = R @ v  # re-rotate back
     return v.astype(x.dtype), r.astype(x.dtype)
+
+
+def _rotate(pts, v):
+    R = rotation_matrix(v)
+    return pts @ R.T, R
 
 
 def _pss(pts, lm_kwargs):
@@ -118,10 +122,8 @@ def _pss(pts, lm_kwargs):
 
 
 def _res(params, x_dag):
-    v_dag, r = params[:-1].reshape(1, -1), params[-1]
-    diff = x_dag - v_dag
-    dist = np.linalg.norm(diff, axis=1)
-    return dist - r
+    v_dag, r = params[:-1], params[-1]
+    return np.linalg.norm(x_dag - v_dag.reshape(1, -1), axis=1) - r
 
 
 def _jac(params, x_dag):
