@@ -41,12 +41,14 @@ class Project:
     Examples
     --------
     >>> import numpy as np
+    >>> from pns.pss import pss
     >>> from pns.transform import Project
     >>> from pns.util import circular_data
-    >>> x = circular_data()
+    >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> v, r = pss(x)
     >>> project = Project(np.add, np.subtract, np.multiply, np.divide, np.sin,
     ... np.acos, np.atan, np.matmul)
-    >>> xP, res = project(x, np.array([0, 0, 1]), 0.5)
+    >>> xP, res = project(x, v, r)
     """
 
     def __init__(
@@ -130,11 +132,12 @@ def project(X, v, r):
 
     Examples
     --------
-    >>> import numpy as np
+    >>> from pns.pss import pss
     >>> from pns.transform import project
     >>> from pns.util import unit_sphere, circular_data
-    >>> x = circular_data()
-    >>> A, _ = project(x, np.array([0, 0, 1]), 0.5)
+    >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> v, r = pss(x)
+    >>> A, _ = project(x, v, r)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
     ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
@@ -167,11 +170,13 @@ class Embed:
     Examples
     --------
     >>> import numpy as np
+    >>> from pns.pss import pss
     >>> from pns.transform import Embed
     >>> from pns.util import circular_data
-    >>> x = circular_data()
+    >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> v, r = pss(x)
     >>> embed = Embed(np.matmul)
-    >>> x_embed = embed(x, np.array([0, 0, 1]), 0.5)
+    >>> x_embed = embed(x, v, r)
     """
 
     def __init__(self, matmul_func, dtype=np.float64):
@@ -211,11 +216,12 @@ def embed(x, v, r, *args, **kwargs):
 
     Examples
     --------
-    >>> import numpy as np
+    >>> from pns.pss import pss
     >>> from pns.transform import embed
     >>> from pns.util import unit_sphere, circular_data
-    >>> x = circular_data()
-    >>> x_embed = embed(x, np.array([0, 0, 1]), 0.5)
+    >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> v, r = pss(x)
+    >>> x_embed = embed(x, v, r)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
     ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
@@ -320,7 +326,7 @@ def reconstruct(x, v, r, *args, **kwargs):
     >>> from pns.util import unit_sphere
     >>> t = np.linspace(0, 2 * np.pi, 100)
     >>> x = np.vstack((np.cos(t), np.sin(t))).T
-    >>> x_rec = reconstruct(x, np.array([0, 0, 1]), 0.5)
+    >>> x_rec = reconstruct(x, np.array([0, -1, 0]), 0.5)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
     ... ax1 = fig.add_subplot(121)
@@ -346,12 +352,13 @@ class ExtrinsicPNS:
 
     Examples
     --------
-    >>> import numpy as np
+    >>> from pns.pss import pss
     >>> from pns.transform import project, embed, reconstruct, ExtrinsicPNS
     >>> from pns.util import circular_data
-    >>> x = circular_data()
+    >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> v, r = pss(x)
     >>> extrinsic_pns = ExtrinsicPNS(project, embed, reconstruct)
-    >>> x_transformed = extrinsic_pns(x, [np.array([0, 0, 1])], [np.float64(0.5)])
+    >>> x_transformed = extrinsic_pns(x, [v], [r])
     """
 
     def __init__(self, project_func, embed_func, reconstruct_func, dtype=np.float64):
@@ -403,11 +410,12 @@ def extrinsic_pns(X, vs, rs, *args, **kwargs):
 
     Examples
     --------
-    >>> import numpy as np
+    >>> from pns.pss import pss
     >>> from pns.transform import extrinsic_pns
     >>> from pns.util import circular_data
-    >>> x = circular_data()
-    >>> x_transformed = extrinsic_pns(x, [np.array([0, 0, 1])], [np.float64(0.5)])
+    >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> v, r = pss(x)
+    >>> x_transformed = extrinsic_pns(x, [v], [r])
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... plt.scatter(*x_transformed.reshape(-1, 2).T)
     """
@@ -434,14 +442,13 @@ def inverse_extrinsic_pns(x, vs, rs, *args, **kwargs):
 
     Examples
     --------
-    >>> import numpy as np
+    >>> from pns.pss import pss
     >>> from pns.transform import inverse_extrinsic_pns, extrinsic_pns
     >>> from pns.util import circular_data, unit_sphere
-    >>> x = circular_data().reshape(-1, 3)
-    >>> vs = [np.array([0, 0, 1])]
-    >>> rs = [np.float64(0.5)]
-    >>> x_transformed = extrinsic_pns(x, vs, rs)
-    >>> x_reconstructed = inverse_extrinsic_pns(x_transformed, vs, rs)
+    >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> v, r = pss(x)
+    >>> x_transformed = extrinsic_pns(x, [v], [r])
+    >>> x_reconstructed = inverse_extrinsic_pns(x_transformed, [v], [r])
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
     ... ax = fig.add_subplot(projection='3d', computed_zorder=False)
