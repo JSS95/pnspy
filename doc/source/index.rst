@@ -3,29 +3,38 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-************************
-scikit-pns documentation
-************************
+*******************
+PyPNS documentation
+*******************
 
 Module reference
 ================
 
-Hypersphere functions
----------------------
-
-.. automodule:: pns.base
+.. automodule:: pns
     :members:
 
-Principal subsphere
--------------------
+PNS detection
+-------------
 
-.. automodule:: pns.pss
+.. automodule:: pns.pns
     :members:
 
 Data transformation
 -------------------
 
 .. automodule:: pns.transform
+    :members:
+
+PSS detection
+-------------
+
+.. automodule:: pns.pss
+    :members:
+
+Hypersphere functions
+---------------------
+
+.. automodule:: pns.base
     :members:
 
 Utilities

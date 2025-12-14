@@ -12,8 +12,8 @@ __all__ = [
 ]
 
 
-def pss(x, tol=1e-3, maxiter=None):
-    r"""Find the principal subsphere from data on a hypersphere.
+def pss(x, tol=1e-3, maxiter=None, lm_kwargs=None):
+    r"""Find the principal subsphere (PSS) from data on a hypersphere.
 
     Parameters
     ----------
@@ -25,6 +25,9 @@ def pss(x, tol=1e-3, maxiter=None):
     maxiter : int, optional
         Maximum number of iterations for the optimization.
         If None, the number of iterations is not checked.
+    lm_kwargs : dict, optional
+        Additional keyword arguments to be passed for Levenberg-Marquardt optimization.
+        Follows the signature of :func:`scipy.optimize.least_squares`.
 
     Returns
     -------
@@ -54,6 +57,13 @@ def pss(x, tol=1e-3, maxiter=None):
     ... ax.scatter(*x.T, marker="x")
     ... ax.plot(*circle_3d(v, r), color="tab:orange", zorder=10)
     """
+    if lm_kwargs is None:
+        lm_kwargs = {}
+    else:
+        lm_kwargs = lm_kwargs.copy()
+        lm_kwargs.pop("method", None)
+        lm_kwargs.pop("args", None)
+
     _, D = x.shape
     if D <= 1:
         raise ValueError("Data must be on at least 1-sphere.")
@@ -69,7 +79,7 @@ def pss(x, tol=1e-3, maxiter=None):
         pole = np.array([0] * (D - 1) + [1])
         R = np.eye(D)
         _x = x
-        v, r = _pss(_x)
+        v, r = _pss(_x, lm_kwargs=lm_kwargs)
 
         iter_count = 0
         while np.arccos(np.dot(pole, v)) > tol:
@@ -84,7 +94,7 @@ def pss(x, tol=1e-3, maxiter=None):
 
             # Rotate so that v becomes the pole
             _x, _R = rotation_matrix(_x, v)
-            v, r = _pss(_x)
+            v, r = _pss(_x, lm_kwargs=lm_kwargs)
             R = R @ _R.T
             iter_count += 1
 
@@ -92,14 +102,14 @@ def pss(x, tol=1e-3, maxiter=None):
     return v.astype(x.dtype), r.astype(x.dtype)
 
 
-def _pss(pts):
+def _pss(pts, lm_kwargs):
     # Projection
     x_dag = log_map(pts)
     v_dag_init = np.mean(x_dag, axis=0)
     r_init = np.mean(np.linalg.norm(x_dag - v_dag_init, axis=1))
     init = np.concatenate([v_dag_init, [r_init]])
     # Optimization
-    opt = least_squares(_res, init, _jac, method="lm", args=(x_dag,)).x
+    opt = least_squares(_res, init, _jac, method="lm", args=(x_dag,), **lm_kwargs).x
     v_dag_opt, r_opt = opt[:-1], opt[-1]
     v_opt = exp_map(v_dag_opt.reshape(1, -1)).reshape(-1)
     r_opt = np.mod(r_opt, np.pi)
