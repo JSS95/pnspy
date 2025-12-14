@@ -93,7 +93,8 @@ def pss(x, tol=1e-3, maxiter=None, lm_kwargs=None):
                 break
 
             # Rotate so that v becomes the pole
-            _x, _R = rotation_matrix(_x, v)
+            _R = rotation_matrix(v)
+            _x = _x @ R.T
             v, r = _pss(_x, lm_kwargs=lm_kwargs)
             R = R @ _R.T
             iter_count += 1
