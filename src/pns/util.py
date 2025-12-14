@@ -2,6 +2,8 @@
 
 import numpy as np
 
+from .base import rotation_matrix
+
 __all__ = [
     "unit_sphere",
     "circular_data",
@@ -32,8 +34,13 @@ def unit_sphere():
     return x, y, z
 
 
-def circular_data():
+def circular_data(v=(0, 0, 1)):
     """Circular data on a 3D unit sphere.
+
+    Parameters
+    ----------
+    v : array of shape (3,), default=(0, 0, 1)
+        Unit vector to center of circle.
 
     Returns
     -------
@@ -43,16 +50,17 @@ def circular_data():
     Examples
     --------
     >>> from pns.util import unit_sphere, circular_data
+    >>> v = [0, -1, 0]
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
     ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax.scatter(*circular_data().T)
+    ... ax.scatter(*circular_data(v).T)
     """
     t = np.linspace(0.1 * np.pi, 0.2 * np.pi, 10)
     p = np.linspace(-np.pi, np.pi / 2, 10)
     T, P = np.meshgrid(t, p)
     x = np.array([np.sin(T) * np.cos(P), np.sin(T) * np.sin(P), np.cos(T)]).T
-    return x
+    return x @ rotation_matrix(v)
 
 
 def circle_3d(v, theta, n=100):
