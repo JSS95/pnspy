@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "PyPNS"
+project = "PnsPy"
 copyright = "2025, Jisoo Song"
 author = "Jisoo Song"
 
@@ -36,9 +36,9 @@ plot_include_source = True
 html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
-    "github_url": "https://github.com/JSS95/pypns",
+    "github_url": "https://github.com/JSS95/pnspy",
     "logo": {
-        "text": "PyPNS",
+        "text": "PnsPy",
     },
     "show_toc_level": 2,
 }

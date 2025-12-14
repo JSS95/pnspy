@@ -3,7 +3,7 @@ requires = ["setuptools", "numpy"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pypns"
+name = "pnspy"
 version = "0.1.0"
 authors = [
     {name = "Jisoo Song", email = "jeesoo9595@snu.ac.kr"}
@@ -33,9 +33,9 @@ dependencies = [
 ]
 
 [project.urls]
-homepage = "https://pypi.python.org/pypi/pypns/"
-source = "https://github.com/JSS95/pypns"
-documentation = "https://pypns.readthedocs.io"
+homepage = "https://pypi.python.org/pypi/pnspy/"
+source = "https://github.com/JSS95/pnspy"
+documentation = "https://pnspy.readthedocs.io"
 
 [project.optional-dependencies]
 test = [
@@ -51,7 +51,7 @@ dev = [
     "flake8",
     "black",
     "isort",
-    "pypns[test,doc]"
+    "pnspy[test,doc]"
 ]
 
 [tool.setuptools.packages.find]
