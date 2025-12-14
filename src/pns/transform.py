@@ -11,6 +11,8 @@ __all__ = [
     "embed",
     "Reconstruct",
     "reconstruct",
+    "ExtrinsicPNS",
+    "extrinsic_pns",
 ]
 
 
@@ -22,13 +24,10 @@ class Project:
     [op]_func : callable
         Operator function.
     dtype : type
-        Data type.
+        Data type for intermediate vectors.
 
     Notes
     -----
-    The purpose of this class is to facilitate defining computational graphs,
-    without writing the same function multiple times for different frameworks.
-
     The instance of this class is the function
     :math:`P: S^{d-k+1} \to A_{d-k}(v_k, r_k ) \subset S^{d-k+1}` for
     :math:`k = 1, 2, \ldots, d` in the original paper.
@@ -76,14 +75,15 @@ class Project:
             rho = self.acos(self.matmul(X, v.reshape(-1, 1)))  # (N, 1)
         else:
             # For 2D case (circle), use arctan2 to preserve sign
-            rotated_v = v @ np.array([[0, 1], [-1, 0]], dtype=self.dtype)
+            rotated_v = (v @ np.array([[0, 1], [-1, 0]])).astype(self.dtype)
             y = self.matmul(X, rotated_v.reshape(-1, 1))  # (N, 1)
             x = self.matmul(X, v.reshape(-1, 1))  # (N, 1)
             rho = self.atan2(y, x)  # (N, 1)
 
+        sin_r = np.sin(r).astype(self.dtype)
         P = self.div(
             self.add(
-                self.mul(np.sin(r).astype(self.dtype), X),  # (N, d+1)
+                self.mul(sin_r, X),  # (N, d+1)
                 self.mul(
                     self.sin(self.sub(rho, r)),  # (N, 1)
                     v,  # (d+1,)
@@ -151,13 +151,10 @@ class Embed:
     matmul_func : callable
         Matrix multiplication function.
     dtype : type
-        Data type.
+        Data type for intermediate vectors.
 
     Notes
     -----
-    The purpose of this class is to facilitate defining computational graphs,
-    without writing the same function multiple times for different frameworks.
-
     The instance of this class is the function
     :math:`f_k: A_{d-k}(v_k, r_k) \subset S^{d-k+1} \to S^{d-k}` for
     :math:`k = 1, 2, \ldots, d-1` in the original paper.
@@ -180,17 +177,20 @@ class Embed:
         self.matmul = matmul_func
         self.dtype = dtype
 
-    def __call__(self, x, v, r):
+    def __call__(self, x, v, r, lastop_kwargs=None):
+        if lastop_kwargs is None:
+            lastop_kwargs = {}
+
         R = rotation_matrix(v)
         coeff = (1 / np.sin(r) * R[:-1:, :]).T.astype(self.dtype)
-        ret = self.matmul(x, coeff)
+        ret = self.matmul(x, coeff, **lastop_kwargs)
         return ret
 
 
 _embed = Embed(np.matmul)
 
 
-def embed(x, v, r):
+def embed(x, v, r, *args, **kwargs):
     r"""Numpy-compatible instance of :class:`Embed`.
 
     Parameters
@@ -224,7 +224,7 @@ def embed(x, v, r):
     ... ax2.scatter(*x_embed.T, marker=".", zorder=10)
     ... ax2.set_aspect("equal")
     """
-    return _embed(x, v, r)
+    return _embed(x, v, r, *args, **kwargs)
 
 
 class Reconstruct:
@@ -234,14 +234,9 @@ class Reconstruct:
     ----------
     [op]_func : callable
         Operator function.
-    dtype : type
-        Data type.
 
     Notes
     -----
-    The purpose of this class is to facilitate defining computational graphs,
-    without writing the same function multiple times for different frameworks.
-
     The instance of this class is the function
     :math:`f^{-1}_k: S^{d-k} \to A_{d-k}(v_k, r_k) \subset S^{d-k+1}` for
     :math:`k = 1, 2, \ldots, d-1` in the original paper.
@@ -268,14 +263,12 @@ class Reconstruct:
         cos_func,
         full_func,
         hstack_func,
-        dtype=np.float64,
     ):
         self.mul = mul_func
         self.sin = sin_func
         self.cos = cos_func
         self.full = full_func
         self.hstack = hstack_func
-        self.dtype = dtype
 
     def __call__(self, x, v, r):
         R = rotation_matrix(v)
@@ -330,3 +323,73 @@ def reconstruct(x, v, r):
     ... ax2.scatter(*x_rec.T)
     """
     return _reconstruct(x, v, r)
+
+
+class ExtrinsicPNS:
+    r"""Transform data to low-dimensional hypersphere in extrinsic coordinates.
+
+    Parameters
+    ----------
+    project_func : pns.transform.Project
+    embed_func : pns.transform.Embed
+    dtype : type
+        Data type for intermediate vectors.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pns.transform import project, embed, ExtrinsicPNS
+    >>> from pns.util import circular_data
+    >>> x = circular_data()
+    >>> extrinsic_pns = ExtrinsicPNS(project, embed)
+    >>> x_transformed = extrinsic_pns(x, [np.array([0, 0, 1])], [np.float64(0.5)])
+    """
+
+    def __init__(self, project_func, embed_func, dtype=np.float64):
+        self.project = project_func
+        self.embed = embed_func
+        self.dtype = dtype
+
+    def __call__(self, X, vs, rs, lastop_kwargs=None):
+        for v, r in zip(vs[:-1], rs[:-1]):
+            v, r = v.astype(self.dtype), r.reshape(1).astype(self.dtype)
+            P, _ = self.project(X, v, r)
+            X = self.embed(P, v, r)
+        v, r = vs[-1].astype(self.dtype), rs[-1].reshape(1).astype(self.dtype)
+        P, _ = self.project(X, v, r)
+        X = self.embed(P, v, r, lastop_kwargs)
+        return X
+
+
+_extrinsic_pns = ExtrinsicPNS(project, embed)
+
+
+def extrinsic_pns(X, vs, rs, *args, **kwargs):
+    r"""Numpy-compatible instance of :class:`ExtrinsicPNS`.
+
+    Parameters
+    ----------
+    X : (N, d+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        embedded in a ``d+1``-dimensional space.
+    vs : list of (m+1,) real arrays
+        Subsphere axes.
+    rs : list of scalars
+        Subsphere geodesic distances.
+
+    Returns
+    -------
+    (N, d-k+1) real array
+        Extrinsic coordinates of data on a low-dimensional unit hypersphere.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pns.transform import extrinsic_pns
+    >>> from pns.util import circular_data
+    >>> x = circular_data()
+    >>> x_transformed = extrinsic_pns(x, [np.array([0, 0, 1])], [np.float64(0.5)])
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... plt.scatter(*x_transformed.reshape(-1, 2).T)
+    """
+    return _extrinsic_pns(X, vs, rs, *args, **kwargs)
