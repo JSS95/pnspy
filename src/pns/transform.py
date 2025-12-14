@@ -13,6 +13,7 @@ __all__ = [
     "reconstruct",
     "ExtrinsicPNS",
     "extrinsic_pns",
+    "inverse_extrinsic_pns",
 ]
 
 
@@ -251,7 +252,8 @@ class Reconstruct:
     >>> from pns.transform import Reconstruct
     >>> t = np.linspace(0, 2 * np.pi, 100)
     >>> x = np.vstack((np.cos(t), np.sin(t))).T
-    >>> reconstruct = Reconstruct(np.multiply, np.sin, np.cos, np.full, np.hstack)
+    >>> reconstruct = Reconstruct(np.multiply, np.sin, np.cos, np.full, np.hstack,
+    ... np.matmul)
     >>> x_rec = reconstruct(x, np.array([0, 0, 1]), 0.5)
     """
 
@@ -263,19 +265,24 @@ class Reconstruct:
         cos_func,
         full_func,
         hstack_func,
+        matmul_func,
     ):
         self.mul = mul_func
         self.sin = sin_func
         self.cos = cos_func
         self.full = full_func
         self.hstack = hstack_func
+        self.matmul = matmul_func
 
-    def __call__(self, x, v, r):
+    def __call__(self, x, v, r, lastop_kwargs=None):
+        if lastop_kwargs is None:
+            lastop_kwargs = {}
+
         R = rotation_matrix(v)
         vec = self.hstack(
             [self.sin(r) * x, self.full(len(x), self.cos(r)).reshape(-1, 1)]
         )
-        return vec @ R
+        return self.matmul(vec, R, **lastop_kwargs)
 
 
 _reconstruct = Reconstruct(
@@ -284,10 +291,11 @@ _reconstruct = Reconstruct(
     np.cos,
     np.full,
     np.hstack,
+    np.matmul,
 )
 
 
-def reconstruct(x, v, r):
+def reconstruct(x, v, r, *args, **kwargs):
     r"""Numpy-compatible instance of :class:`Reconstruct`.
 
     Parameters
@@ -322,7 +330,7 @@ def reconstruct(x, v, r):
     ... ax2.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
     ... ax2.scatter(*x_rec.T)
     """
-    return _reconstruct(x, v, r)
+    return _reconstruct(x, v, r, *args, **kwargs)
 
 
 class ExtrinsicPNS:
@@ -332,22 +340,24 @@ class ExtrinsicPNS:
     ----------
     project_func : pns.transform.Project
     embed_func : pns.transform.Embed
+    reconstruct_func : pns.transform.Reconstruct
     dtype : type
         Data type for intermediate vectors.
 
     Examples
     --------
     >>> import numpy as np
-    >>> from pns.transform import project, embed, ExtrinsicPNS
+    >>> from pns.transform import project, embed, reconstruct, ExtrinsicPNS
     >>> from pns.util import circular_data
     >>> x = circular_data()
-    >>> extrinsic_pns = ExtrinsicPNS(project, embed)
+    >>> extrinsic_pns = ExtrinsicPNS(project, embed, reconstruct)
     >>> x_transformed = extrinsic_pns(x, [np.array([0, 0, 1])], [np.float64(0.5)])
     """
 
-    def __init__(self, project_func, embed_func, dtype=np.float64):
+    def __init__(self, project_func, embed_func, reconstruct_func, dtype=np.float64):
         self.project = project_func
         self.embed = embed_func
+        self.reconstruct = reconstruct_func
         self.dtype = dtype
 
     def __call__(self, X, vs, rs, lastop_kwargs=None):
@@ -360,8 +370,17 @@ class ExtrinsicPNS:
                 X = self.embed(P, v, r, lastop_kwargs)
         return X
 
+    def inverse(self, x, vs, rs, lastop_kwargs=None):
+        """Inverse transformation of ``self(X, vs, rs)``."""
+        for i, (v, r) in enumerate(zip(reversed(vs), reversed(rs))):
+            if i < len(vs) - 1:
+                x = self.reconstruct(x, v, r)
+            else:
+                x = self.reconstruct(x, v, r, lastop_kwargs)
+        return x
 
-_extrinsic_pns = ExtrinsicPNS(project, embed)
+
+_extrinsic_pns = ExtrinsicPNS(project, embed, reconstruct)
 
 
 def extrinsic_pns(X, vs, rs, *args, **kwargs):
@@ -393,3 +412,41 @@ def extrinsic_pns(X, vs, rs, *args, **kwargs):
     ... plt.scatter(*x_transformed.reshape(-1, 2).T)
     """
     return _extrinsic_pns(X, vs, rs, *args, **kwargs)
+
+
+def inverse_extrinsic_pns(x, vs, rs, *args, **kwargs):
+    """Inverse of :func:`extrinsic_pns`.
+
+    Parameters
+    ----------
+    x : (N, d-k+1) real array
+        Extrinsic coordinates of data on a low-dimensional unit hypersphere.
+    vs : list of (m+1,) real arrays
+        Subsphere axes.
+    rs : list of scalars
+        Subsphere geodesic distances.
+
+    Returns
+    -------
+    (N, d+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        embedded in a ``d+1``-dimensional space.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pns.transform import inverse_extrinsic_pns, extrinsic_pns
+    >>> from pns.util import circular_data, unit_sphere
+    >>> x = circular_data().reshape(-1, 3)
+    >>> vs = [np.array([0, 0, 1])]
+    >>> rs = [np.float64(0.5)]
+    >>> x_transformed = extrinsic_pns(x, vs, rs)
+    >>> x_reconstructed = inverse_extrinsic_pns(x_transformed, vs, rs)
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... fig = plt.figure()
+    ... ax = fig.add_subplot(projection='3d', computed_zorder=False)
+    ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax.scatter(*x.T, marker=".", zorder=10)
+    ... ax.scatter(*x_reconstructed.T, marker="x", zorder=10)
+    """
+    return _extrinsic_pns.inverse(x, vs, rs, *args, **kwargs)
