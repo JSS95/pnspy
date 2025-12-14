@@ -351,13 +351,13 @@ class ExtrinsicPNS:
         self.dtype = dtype
 
     def __call__(self, X, vs, rs, lastop_kwargs=None):
-        for v, r in zip(vs[:-1], rs[:-1]):
+        for i, (v, r) in enumerate(zip(vs, rs)):
             v, r = v.astype(self.dtype), r.reshape(1).astype(self.dtype)
             P, _ = self.project(X, v, r)
-            X = self.embed(P, v, r)
-        v, r = vs[-1].astype(self.dtype), rs[-1].reshape(1).astype(self.dtype)
-        P, _ = self.project(X, v, r)
-        X = self.embed(P, v, r, lastop_kwargs)
+            if i < len(vs) - 1:
+                X = self.embed(P, v, r)
+            else:
+                X = self.embed(P, v, r, lastop_kwargs)
         return X
 
 
