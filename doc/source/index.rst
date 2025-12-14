@@ -13,12 +13,6 @@ Module reference
 .. automodule:: pns
     :members:
 
-PNS detection
--------------
-
-.. automodule:: pns.pns
-    :members:
-
 Data transformation
 -------------------
 
