@@ -255,8 +255,9 @@ class Reconstruct:
     >>> from pns.transform import Reconstruct
     >>> t = np.linspace(0, 2 * np.pi, 100)
     >>> x = np.vstack((np.cos(t), np.sin(t))).T
-    >>> reconstruct = Reconstruct(np.multiply, np.sin, np.cos, np.full, np.hstack,
-    ... np.matmul)
+    >>> reconstruct = Reconstruct(np.multiply, np.sin, np.cos,
+    ... lambda arr, val: np.full((arr.shape[0], 1), val),
+    ... np.hstack, np.matmul)
     >>> x_rec = reconstruct(x, np.array([0, 0, 1]), 0.5)
     """
 
@@ -269,6 +270,7 @@ class Reconstruct:
         full_func,
         hstack_func,
         matmul_func,
+        dtype=np.float64,
     ):
         self.mul = mul_func
         self.sin = sin_func
@@ -276,15 +278,14 @@ class Reconstruct:
         self.full = full_func
         self.hstack = hstack_func
         self.matmul = matmul_func
+        self.dtype = dtype
 
     def __call__(self, x, v, r, lastop_kwargs=None):
         if lastop_kwargs is None:
             lastop_kwargs = {}
 
-        R = rotation_matrix(v)
-        vec = self.hstack(
-            [self.sin(r) * x, self.full(len(x), self.cos(r)).reshape(-1, 1)]
-        )
+        R = rotation_matrix(v).astype(self.dtype)
+        vec = self.hstack([self.mul(self.sin(r), x), self.full(x, self.cos(r))])
         return self.matmul(vec, R, **lastop_kwargs)
 
 
@@ -292,7 +293,7 @@ _reconstruct = Reconstruct(
     np.multiply,
     np.sin,
     np.cos,
-    np.full,
+    lambda arr, val: np.full((arr.shape[0], 1), val),
     np.hstack,
     np.matmul,
 )
