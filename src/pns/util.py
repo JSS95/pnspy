@@ -44,7 +44,7 @@ def circular_data(v=(0, 0, 1)):
 
     Returns
     -------
-    ndarray of shape (100, 3)
+    ndarray of shape (10, 10, 3)
         Data coordinates.
 
     Examples
