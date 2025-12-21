@@ -64,7 +64,7 @@ def project(x, v, r):
     return (np.sin(r) * x + np.sin(rho - r) * v) / np.sin(rho), rho - r
 
 
-def embed(x, v, r, *args, **kwargs):
+def embed(x, v, r):
     r"""Embed data on a sub-hypersphere to a low-dimensional unit hypersphere.
 
     Parameters
@@ -113,7 +113,7 @@ def embed(x, v, r, *args, **kwargs):
     return x @ (1 / np.sin(r) * R[:-1:, :]).T
 
 
-def reconstruct(x, v, r, *args, **kwargs):
+def reconstruct(x, v, r):
     r"""Reconstruct data on a low-dimensional unit hypersphere. to a sub-hypersphere.
 
     Parameters
