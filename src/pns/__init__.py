@@ -273,7 +273,7 @@ def inverse_intrinsic_transform(Xi, vs, rs):
 
     # Un-scale Xi, i.e., xi(d-k) = Xi(d-k) / prod_{i=1}^{k-1}(sin(r_i)).
     sin_rs = np.sin(rs[:-1])  # sin(r_1), sin(r_2), ..., sin(r_{d-1})
-    xi = Xi.copy()  # xi(0), ..., xi(d-1)
+    xi = Xi  # xi(0), ..., xi(d-1)
     prod_sin_r = np.prod(sin_rs)
     for i in range(d - 1):
         xi[:, i] /= prod_sin_r
