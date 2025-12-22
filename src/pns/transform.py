@@ -6,6 +6,7 @@ from .base import rotation_matrix
 
 __all__ = [
     "project",
+    "inverse_project",
     "embed",
     "reconstruct",
 ]
@@ -62,6 +63,46 @@ def project(x, v, r):
     elif x.shape[1] == 2:
         rho = np.arctan2(x @ (v @ [[0, 1], [-1, 0]]), x @ v)[..., np.newaxis]
     return (np.sin(r) * x + np.sin(rho - r) * v) / np.sin(rho), rho - r
+
+
+def inverse_project(xP, res, v, r):
+    """Inverse of :func:`project()`.
+
+    Parameters
+    ----------
+    xP : (N, m+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        projected onto the found principal subsphere.
+    res : (N, 1) real array
+        Projection residuals.
+    v : (m+1,) real array
+        Subsphere axis.
+    r : scalar
+        Subsphere geodesic distance.
+
+    Returns
+    -------
+    x : (N, m+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        embedded in a ``d+1``-dimensional space.
+
+    Examples
+    --------
+    >>> from pns.pss import pss
+    >>> from pns.transform import project, inverse_project
+    >>> from pns.util import unit_sphere, circular_data
+    >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> v, r = pss(x)
+    >>> xP, res = project(x, v, r)
+    >>> x_invprj = inverse_project(xP, res, v, r)
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
+    ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax.scatter(*xP.T, marker="x", zorder=10)
+    ... ax.scatter(*x_invprj.T, marker=".")
+    """
+    rho = (res + r)[..., np.newaxis]
+    return (xP * np.sin(rho) - np.sin(rho - r) * v) / np.sin(r)
 
 
 def embed(x, v, r):
