@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 from scipy.optimize import least_squares
 
-from .base import exp_map, log_map, rotation_matrix
+from .base import circle_mean, exp_map, log_map, rotation_matrix
 
 __all__ = [
     "pss",
@@ -68,13 +68,9 @@ def pss(x, tol=1e-3, maxiter=None, lm_kwargs=None):
     if D <= 1:
         raise ValueError("Data must be on at least 1-sphere.")
     elif D == 2:
+        # Circle mean
         r = np.int_(0)
-        v = np.mean(x, axis=0)
-        norm = np.linalg.norm(v)
-        if norm != 0:
-            v /= norm
-        else:
-            v = np.array([1, 0])
+        v = circle_mean(x)
     else:
         pole = np.array([0] * (D - 1) + [1])
         R = np.eye(D)
