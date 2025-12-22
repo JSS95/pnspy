@@ -12,10 +12,10 @@ from .transform import embed, inverse_project, project, reconstruct
 
 __all__ = [
     "pns",
-    "extrinsic_pns",
-    "inverse_extrinsic_pns",
-    "intrinsic_pns",
-    "inverse_intrinsic_pns",
+    "extrinsic_transform",
+    "inverse_extrinsic_transform",
+    "intrinsic_transform",
+    "inverse_intrinsic_transform",
 ]
 
 
@@ -95,7 +95,7 @@ def pns(x, n_components, tol=1e-3, maxiter=None, lm_kwargs=None):
     return vs, rs, xis, x
 
 
-def extrinsic_pns(X, vs, rs):
+def extrinsic_transform(X, vs, rs):
     r"""Transform data to low-dimensional hypersphere in extrinsic coordinates.
 
     Parameters
@@ -115,12 +115,12 @@ def extrinsic_pns(X, vs, rs):
 
     Examples
     --------
-    >>> from pns import extrinsic_pns
+    >>> from pns import extrinsic_transform
     >>> from pns.pss import pss
     >>> from pns.util import circular_data
     >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
     >>> v, r = pss(x)
-    >>> x_transformed = extrinsic_pns(x, [v], [r])
+    >>> x_transformed = extrinsic_transform(x, [v], [r])
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... plt.scatter(*x_transformed.T)
     ... plt.gca().set_aspect("equal")
@@ -131,8 +131,8 @@ def extrinsic_pns(X, vs, rs):
     return X
 
 
-def inverse_extrinsic_pns(x, vs, rs):
-    """Inverse transformation of :func:`extrinsic_pns`.
+def inverse_extrinsic_transform(x, vs, rs):
+    """Inverse transformation of :func:`extrinsic_transform`.
 
     Sends the reduced data to the original dimension.
 
@@ -153,13 +153,13 @@ def inverse_extrinsic_pns(x, vs, rs):
 
     Examples
     --------
-    >>> from pns import inverse_extrinsic_pns, extrinsic_pns
+    >>> from pns import inverse_extrinsic_transform, extrinsic_transform
     >>> from pns.pss import pss
     >>> from pns.util import circular_data, unit_sphere
     >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
     >>> v, r = pss(x)
-    >>> x_transformed = extrinsic_pns(x, [v], [r])
-    >>> x_reconstructed = inverse_extrinsic_pns(x_transformed, [v], [r])
+    >>> x_transformed = extrinsic_transform(x, [v], [r])
+    >>> x_reconstructed = inverse_extrinsic_transform(x_transformed, [v], [r])
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
     ... ax = fig.add_subplot(projection='3d', computed_zorder=False)
@@ -172,7 +172,7 @@ def inverse_extrinsic_pns(x, vs, rs):
     return x
 
 
-def intrinsic_pns(X, vs, rs):
+def intrinsic_transform(X, vs, rs):
     r"""Transform data to low-dimensional hypersphere in intrinsic coordinates.
 
     Parameters
@@ -193,11 +193,11 @@ def intrinsic_pns(X, vs, rs):
     Examples
     --------
     >>> import numpy as np
-    >>> from pns import pns, intrinsic_pns
+    >>> from pns import pns, intrinsic_transform
     >>> from pns.util import unit_sphere, circular_data
     >>> X = circular_data([0, -1, 0]).reshape(-1, 3)
     >>> vs, rs, _, _ = pns(X, 1)
-    >>> Xi = intrinsic_pns(X, vs, rs)[:, :2]  # Get the first two components
+    >>> Xi = intrinsic_transform(X, vs, rs)[:, :2]  # Get the first two components
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
     ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
@@ -229,8 +229,8 @@ def intrinsic_pns(X, vs, rs):
     return ret
 
 
-def inverse_intrinsic_pns(Xi, vs, rs):
-    """Inverse of :func:`intrinsic_pns`.
+def inverse_intrinsic_transform(Xi, vs, rs):
+    """Inverse of :func:`intrinsic_transform`.
 
     Sends the reduced data to the original dimension.
 
@@ -251,12 +251,12 @@ def inverse_intrinsic_pns(Xi, vs, rs):
 
     Examples
     --------
-    >>> from pns import pns, intrinsic_pns, inverse_intrinsic_pns
+    >>> from pns import pns, intrinsic_transform, inverse_intrinsic_transform
     >>> from pns.util import unit_sphere, circular_data
     >>> X = circular_data([0, -1, 0]).reshape(-1, 3)
     >>> vs, rs, _, _ = pns(X, 1)
-    >>> Xi = intrinsic_pns(X, vs, rs)[:, :1]  # Get the first one component
-    >>> X_inv = inverse_intrinsic_pns(Xi, vs, rs)
+    >>> Xi = intrinsic_transform(X, vs, rs)[:, :1]  # Get the first one component
+    >>> X_inv = inverse_intrinsic_transform(Xi, vs, rs)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
     ... ax.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
