@@ -13,6 +13,7 @@ __all__ = [
     "pns",
     "extrinsic_pns",
     "inverse_extrinsic_pns",
+    "intrinsic_pns",
 ]
 
 
@@ -100,9 +101,9 @@ def extrinsic_pns(X, vs, rs):
     X : (N, d+1) real array
         Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
         embedded in a ``d+1``-dimensional space.
-    vs : list of (m+1,) real arrays
+    vs : list of k real arrays
         Subsphere axes.
-    rs : list of scalars
+    rs : list of k scalars
         Subsphere geodesic distances.
 
     Returns
@@ -120,8 +121,9 @@ def extrinsic_pns(X, vs, rs):
     >>> x_transformed = extrinsic_pns(x, [v], [r])
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... plt.scatter(*x_transformed.T)
+    ... plt.gca().set_aspect("equal")
     """
-    for i, (v, r) in enumerate(zip(vs, rs)):
+    for v, r in zip(vs, rs):
         P, _ = project(X, v, r)
         X = embed(P, v, r)
     return X
@@ -164,3 +166,59 @@ def inverse_extrinsic_pns(x, vs, rs):
     for i, (v, r) in enumerate(zip(reversed(vs), reversed(rs))):
         x = reconstruct(x, v, r)
     return x
+
+
+def intrinsic_pns(X, vs, rs):
+    r"""Transform data to low-dimensional hypersphere in intrinsic coordinates.
+
+    Parameters
+    ----------
+    X : (N, d+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        embedded in a ``d+1``-dimensional space.
+    vs : list of d real arrays
+        Subsphere axes.
+    rs : list of d scalars
+        Subsphere geodesic distances.
+
+    Returns
+    -------
+    Xi : (N, d) real array
+        Intrinsic coordinates of data on a low-dimensional unit hypersphere.
+
+    Examples
+    --------
+    >>> from pns import pns, intrinsic_pns
+    >>> from pns.util import unit_sphere, circular_data
+    >>> X = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> vs, rs, _, _ = pns(X, 1)
+    >>> Xi = intrinsic_pns(X, vs, rs)[:, :2]  # Get the first two components
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... fig = plt.figure()
+    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+    ... ax1.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+    ... ax1.scatter(*X.T, c=Xi[:, 0])
+    ... ax2 = fig.add_subplot(122)
+    ... ax2.scatter(*Xi.T, c=Xi[:, 0])
+    ... ax2.set_xlim(-np.pi, np.pi)
+    ... ax2.set_ylim(-np.pi/2, np.pi/2)
+    """
+    d = X.shape[1] - 1
+    residuals = []
+
+    sin_r = 1
+    for k in range(1, d):
+        v, r = vs[k - 1], rs[k - 1]
+        P, xi = project(X, v, r)
+        X = embed(P, v, r)
+        Xi = sin_r * xi
+        residuals.append(Xi)
+        sin_r *= np.sin(r)
+
+    v, r = vs[d - 1], rs[d - 1]
+    _, xi = project(X, v, r)
+    Xi = sin_r * xi
+    residuals.append(Xi)
+
+    ret = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
+    return ret
