@@ -199,7 +199,7 @@ def circle_mean(X):
     -----
     Uses the algorithm [1]_ implemented by the Geomstats [2]_ package.
 
-    Copyright (c) 2019-2024 geomstats developers
+    Copyright (c) 2018 Nina Miolane
 
     References
     ----------
