@@ -44,23 +44,26 @@ def circular_data(v=(0, 0, 1)):
 
     Returns
     -------
-    ndarray of shape (10, 10, 3)
+    ndarray of shape (100, 3)
         Data coordinates.
 
     Examples
     --------
     >>> from pns.util import unit_sphere, circular_data
     >>> v = [0, -1, 0]
+    >>> X = circular_data(v)
+    >>> X.shape
+    (100, 3)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
     ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax.scatter(*circular_data(v).T)
+    ... ax.scatter(*X.T)
     """
     t = np.linspace(0.1 * np.pi, 0.4 * np.pi, 10)
     p = np.linspace(-np.pi, np.pi / 2, 10)
     T, P = np.meshgrid(t, p)
     x = np.array([np.sin(T) * np.cos(P), np.sin(T) * np.sin(P), np.cos(T)]).T
-    return x @ rotation_matrix(v)
+    return x.reshape(-1, 3) @ rotation_matrix(v)
 
 
 def circle_3d(v, theta, n=100):

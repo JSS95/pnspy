@@ -75,7 +75,7 @@ def extrinsic_to_intrinsic(X):
     --------
     >>> from pns.base import extrinsic_to_intrinsic
     >>> from pns.util import circular_data
-    >>> X = circular_data().reshape(-1, 3)
+    >>> X = circular_data()
     >>> X.shape
     (100, 3)
     >>> extrinsic_to_intrinsic(X).shape

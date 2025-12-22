@@ -91,7 +91,7 @@ def inverse_project(xP, res, v, r):
     >>> from pns.pss import pss
     >>> from pns.transform import project, inverse_project
     >>> from pns.util import unit_sphere, circular_data
-    >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> x = circular_data([0, -1, 0])
     >>> v, r = pss(x)
     >>> xP, res = project(x, v, r)
     >>> x_invprj = inverse_project(xP, res, v, r)
@@ -138,7 +138,7 @@ def embed(x, v, r):
     >>> from pns.pss import pss
     >>> from pns.transform import embed
     >>> from pns.util import unit_sphere, circular_data
-    >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> x = circular_data([0, -1, 0])
     >>> v, r = pss(x)
     >>> x_embed = embed(x, v, r)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
