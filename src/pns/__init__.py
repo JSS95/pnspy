@@ -163,7 +163,7 @@ def inverse_extrinsic_pns(x, vs, rs):
     ... ax.scatter(*x.T, marker=".", zorder=10)
     ... ax.scatter(*x_reconstructed.T, marker="x", zorder=10)
     """
-    for i, (v, r) in enumerate(zip(reversed(vs), reversed(rs))):
+    for v, r in zip(reversed(vs), reversed(rs)):
         x = reconstruct(x, v, r)
     return x
 
@@ -188,6 +188,7 @@ def intrinsic_pns(X, vs, rs):
 
     Examples
     --------
+    >>> import numpy as np
     >>> from pns import pns, intrinsic_pns
     >>> from pns.util import unit_sphere, circular_data
     >>> X = circular_data([0, -1, 0]).reshape(-1, 3)
