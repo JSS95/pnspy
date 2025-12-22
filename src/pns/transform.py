@@ -1,4 +1,4 @@
-"""Classes to transform data."""
+"""Classes to transform data on a hypersphere."""
 
 import numpy as np
 

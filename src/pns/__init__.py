@@ -92,7 +92,7 @@ def pns(x, n_components, tol=1e-3, maxiter=None, lm_kwargs=None):
     return vs, rs, xis, x
 
 
-def extrinsic_pns(X, vs, rs, *args, **kwargs):
+def extrinsic_pns(X, vs, rs):
     r"""Transform data to low-dimensional hypersphere in extrinsic coordinates.
 
     Parameters
@@ -127,7 +127,7 @@ def extrinsic_pns(X, vs, rs, *args, **kwargs):
     return X
 
 
-def inverse_extrinsic_pns(x, vs, rs, *args, **kwargs):
+def inverse_extrinsic_pns(x, vs, rs):
     """Inverse of :func:`extrinsic_pns`.
 
     Parameters
