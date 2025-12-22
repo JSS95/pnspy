@@ -1,13 +1,97 @@
-"""Basic functions to handle data on a hypersphere."""
+"""Basic functions to handle data on a hypersphere.
+
+Conventions for intrinsic coordiates are:
+    - xi[..., 0]: azimuthal angle in [-pi, pi]
+    - xi[..., 1:]: centered elevation angles in [-pi/2, pi/2]
+"""
 
 import numpy as np
 
 __all__ = [
+    "intrinsic_to_extrinsic",
+    "extrinsic_to_intrinsic",
     "rotation_matrix",
     "exp_map",
     "log_map",
     "circle_mean",
 ]
+
+
+def intrinsic_to_extrinsic(xi):
+    """Convert hypersphere intrinsic coordinates to extrinsic.
+
+    Parameters
+    ----------
+    xi : array of shape (N, d)
+        Hyperspherical coordinates.
+
+    Returns
+    -------
+    X : array of shape (N, d+1)
+        Cartesian coordinates.
+
+    Notes
+    -----
+    Intrinsic coordiates are:
+      - xi[..., 0]: azimuthal angle in [-pi, pi]
+      - xi[..., 1:]: centered elevation angles in [-pi/2, pi/2]
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pns.base import intrinsic_to_extrinsic
+    >>> xi = np.array([[0, np.pi/2]])
+    >>> X = intrinsic_to_extrinsic(xi)
+    >>> np.isclose(X, [[0, 0, 1]])
+    array([[ True,  True,  True]])
+    """
+    N, d = xi.shape
+    X = np.zeros((N, d + 1))
+
+    for n in range(N):
+        angles = xi[n]
+        cos_elev = np.cumprod(np.cos(angles[1:][::-1]))[::-1]
+        X[n, 0] = np.cos(angles[0]) * (cos_elev[0] if d > 1 else 1)
+        X[n, 1] = np.sin(angles[0]) * (cos_elev[0] if d > 1 else 1)
+        for k in range(1, d):
+            X[n, k + 1] = np.sin(angles[k]) * (cos_elev[k] if k < d - 1 else 1)
+    return X
+
+
+def extrinsic_to_intrinsic(X):
+    """Convert hypersphere extrinsic coordinates to intrinsic.
+
+    Parameters
+    ----------
+    X : array of shape (N, d+1)
+        Cartesian coordinates.
+
+    Returns
+    -------
+    xi : array of shape (N, d)
+        Hyperspherical coordinates.
+
+    Examples
+    --------
+    >>> from pns.base import extrinsic_to_intrinsic
+    >>> from pns.util import circular_data
+    >>> X = circular_data().reshape(-1, 3)
+    >>> X.shape
+    (100, 3)
+    >>> extrinsic_to_intrinsic(X).shape
+    (100, 2)
+    """
+    N, D = X.shape
+    d = D - 1
+    xi = np.zeros((N, d))
+
+    xi[:, 0] = np.arctan2(X[:, 1], X[:, 0])
+    for i in range(1, d - 1):
+        denom = np.linalg.norm(X[:, i:], axis=1)
+        xi[:, i] = np.arctan(X[:, i + 1] / denom)
+    xi[:, -1] = np.arctan2(X[:, -1], np.linalg.norm(X[:, :-1], axis=1))
+
+    return xi
 
 
 def rotation_matrix(v):
