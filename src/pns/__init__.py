@@ -63,7 +63,7 @@ def pns(x, n_components, tol=1e-3, maxiter=None, lm_kwargs=None):
     >>> from pns import pns
     >>> from pns.util import unit_sphere, circular_data, circle_3d
     >>> x = circular_data([0, -1, 0])
-    >>> vs, rs, _, x_transform = pns(x.reshape(-1, x.shape[-1]), 2)
+    >>> vs, rs, _, x_transform = pns(x, 2)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
     ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
@@ -75,24 +75,25 @@ def pns(x, n_components, tol=1e-3, maxiter=None, lm_kwargs=None):
     ... ax2.scatter(*x_transform.T)
     ... ax2.set_aspect("equal")
     """
+    dtype = x.dtype
     N, d_plus_one = x.shape
     M = d_plus_one - n_components
 
     vs = []
-    rs = np.empty((M,))
-    xis = np.empty((N, M))
+    rs = np.empty((M,), dtype=dtype)
+    xis = np.empty((N, M), dtype=dtype)
     for i in range(M):
         v, r = pss(x, tol, maxiter, lm_kwargs)  # v_k, r_k
         P, xi = project(x, v, r)
         if len(v) > 2:
             x = embed(P, v, r)
         else:
-            x = np.full((len(x), 1), 0, dtype=x.dtype)
+            x = np.zeros((len(x), 1))
 
-        vs.append(v)
+        vs.append(v.astype(dtype))
         rs[i] = r
         xis[:, [i]] = xi
-    return vs, rs, xis, x
+    return vs, rs, xis, x.astype(dtype)
 
 
 def extrinsic_transform(X, vs, rs):
@@ -118,7 +119,7 @@ def extrinsic_transform(X, vs, rs):
     >>> from pns import extrinsic_transform
     >>> from pns.pss import pss
     >>> from pns.util import circular_data
-    >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> x = circular_data([0, -1, 0])
     >>> v, r = pss(x)
     >>> x_transformed = extrinsic_transform(x, [v], [r])
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
@@ -156,7 +157,7 @@ def inverse_extrinsic_transform(x, vs, rs):
     >>> from pns import inverse_extrinsic_transform, extrinsic_transform
     >>> from pns.pss import pss
     >>> from pns.util import circular_data, unit_sphere
-    >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> x = circular_data([0, -1, 0])
     >>> v, r = pss(x)
     >>> x_transformed = extrinsic_transform(x, [v], [r])
     >>> x_reconstructed = inverse_extrinsic_transform(x_transformed, [v], [r])
@@ -195,7 +196,7 @@ def intrinsic_transform(X, vs, rs):
     >>> import numpy as np
     >>> from pns import pns, intrinsic_transform
     >>> from pns.util import unit_sphere, circular_data
-    >>> X = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> X = circular_data([0, -1, 0])
     >>> vs, rs, _, _ = pns(X, 1)
     >>> Xi = intrinsic_transform(X, vs, rs)[:, :2]  # Get the first two components
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
@@ -253,7 +254,7 @@ def inverse_intrinsic_transform(Xi, vs, rs):
     --------
     >>> from pns import pns, intrinsic_transform, inverse_intrinsic_transform
     >>> from pns.util import unit_sphere, circular_data
-    >>> X = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> X = circular_data([0, -1, 0])
     >>> vs, rs, _, _ = pns(X, 1)
     >>> Xi = intrinsic_transform(X, vs, rs)[:, :1]  # Get the first one component
     >>> X_inv = inverse_intrinsic_transform(Xi, vs, rs)

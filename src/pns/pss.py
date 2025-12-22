@@ -50,7 +50,7 @@ def pss(x, tol=1e-3, maxiter=None, lm_kwargs=None):
     >>> from pns.pss import pss
     >>> from pns.util import unit_sphere, circular_data, circle_3d
     >>> x = circular_data([0, -1, 0])
-    >>> v, r = pss(x.reshape(-1, x.shape[-1]))
+    >>> v, r = pss(x)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
     ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
@@ -69,7 +69,7 @@ def pss(x, tol=1e-3, maxiter=None, lm_kwargs=None):
         raise ValueError("Data must be on at least 1-sphere.")
     elif D == 2:
         # Circle mean
-        r = np.int_(0)
+        r = 0
         v = circle_mean(x)
     else:
         pole = np.array([0] * (D - 1) + [1])
@@ -95,7 +95,7 @@ def pss(x, tol=1e-3, maxiter=None, lm_kwargs=None):
             iter_count += 1
 
         v = R @ v  # re-rotate back
-    return v.astype(x.dtype), r.astype(x.dtype)
+    return v, r
 
 
 def _rotate(pts, v):
@@ -129,7 +129,7 @@ def _jac(params, x_dag):
     diff = x_dag - v_dag
     dist = np.linalg.norm(diff, axis=1)
     mask = dist > 1e-12
-    out = np.empty((n, m), dtype=float)
+    out = np.empty((n, m))
     out[mask, :-1] = -diff[mask] / dist[mask][:, None]
     out[~mask, :-1] = 0.0
     out[:, -1] = -1.0

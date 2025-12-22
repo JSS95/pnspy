@@ -129,7 +129,7 @@ def rotation_matrix(v):
     ... ax.scatter(*X.T)
     ... ax.scatter(*X_rotated.T)
     """
-    a = np.zeros_like(v, dtype=np.float64)
+    a = np.zeros((len(v),))
     a[-1] = 1.0
     b = v
     c = b - a * (a @ b)
@@ -147,7 +147,7 @@ def rotation_matrix(v):
             + np.sin(theta) * A
             + (np.cos(theta) - 1) * (np.outer(a, a) + np.outer(c, c))
         )
-    return R.astype(np.float64)
+    return R
 
 
 def exp_map(z):
