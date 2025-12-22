@@ -6,14 +6,16 @@
 
 import numpy as np
 
+from .base import extrinsic_to_intrinsic, intrinsic_to_extrinsic
 from .pss import pss
-from .transform import embed, project, reconstruct
+from .transform import embed, inverse_project, project, reconstruct
 
 __all__ = [
     "pns",
     "extrinsic_pns",
     "inverse_extrinsic_pns",
     "intrinsic_pns",
+    "inverse_intrinsic_pns",
 ]
 
 
@@ -130,7 +132,9 @@ def extrinsic_pns(X, vs, rs):
 
 
 def inverse_extrinsic_pns(x, vs, rs):
-    """Inverse of :func:`extrinsic_pns`.
+    """Inverse transformation of :func:`extrinsic_pns`.
+
+    Sends the reduced data to the original dimension.
 
     Parameters
     ----------
@@ -163,7 +167,7 @@ def inverse_extrinsic_pns(x, vs, rs):
     ... ax.scatter(*x.T, marker=".", zorder=10)
     ... ax.scatter(*x_reconstructed.T, marker="x", zorder=10)
     """
-    for i, (v, r) in enumerate(zip(reversed(vs), reversed(rs))):
+    for v, r in zip(reversed(vs), reversed(rs)):
         x = reconstruct(x, v, r)
     return x
 
@@ -188,6 +192,7 @@ def intrinsic_pns(X, vs, rs):
 
     Examples
     --------
+    >>> import numpy as np
     >>> from pns import pns, intrinsic_pns
     >>> from pns.util import unit_sphere, circular_data
     >>> X = circular_data([0, -1, 0]).reshape(-1, 3)
@@ -222,3 +227,73 @@ def intrinsic_pns(X, vs, rs):
 
     ret = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
     return ret
+
+
+def inverse_intrinsic_pns(Xi, vs, rs):
+    """Inverse of :func:`intrinsic_pns`.
+
+    Sends the reduced data to the original dimension.
+
+    Parameters
+    ----------
+    Xi : (N, n) real array
+        Intrinsic coordinates of data on a low-dimensional unit hypersphere.
+    vs : list of d real arrays
+        Subsphere axes.
+    rs : list of d scalars
+        Subsphere geodesic distances.
+
+    Returns
+    -------
+    X : (N, d+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        embedded in a ``d+1``-dimensional space.
+
+    Examples
+    --------
+    >>> from pns import pns, intrinsic_pns, inverse_intrinsic_pns
+    >>> from pns.util import unit_sphere, circular_data
+    >>> X = circular_data([0, -1, 0]).reshape(-1, 3)
+    >>> vs, rs, _, _ = pns(X, 1)
+    >>> Xi = intrinsic_pns(X, vs, rs)[:, :1]  # Get the first one component
+    >>> X_inv = inverse_intrinsic_pns(Xi, vs, rs)
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
+    ... ax.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+    ... ax.scatter(*X.T)
+    ... ax.scatter(*X_inv.T)
+    """
+    _, n = Xi.shape
+    d = len(vs)
+
+    Xi = np.concatenate(
+        [Xi, np.zeros((Xi.shape[0], d - n))], axis=-1
+    )  # Now, each column in Xi is Xi(0), ..., Xi(d-1).
+
+    # Un-scale Xi, i.e., xi(d-k) = Xi(d-k) / prod_{i=1}^{k-1}(sin(r_i)).
+    sin_rs = np.sin(rs[:-1])  # sin(r_1), sin(r_2), ..., sin(r_{d-1})
+    xi = Xi.copy()  # xi(0), ..., xi(d-1)
+    prod_sin_r = np.prod(sin_rs)
+    for i in range(d - 1):
+        xi[:, i] /= prod_sin_r
+        prod_sin_r /= sin_rs[-i - 1]
+    xi[:, d - 1] /= prod_sin_r
+
+    # Starting from the lowest dimension,
+    # 1. Convert to cartesian coordinates.
+    # 2. Reconstruct to one higher dimension, with north pole different from v.
+    # 3. Rotate for v.
+    # 4. Un-project with residuals.
+    # 5. Go to 2.
+
+    # Initialize: rotate xi(0) and convert to cartesian
+    xi[:, 0] += extrinsic_to_intrinsic(vs[-1][np.newaxis, ...])[0]
+    x_dagger = intrinsic_to_extrinsic(xi[:, :1])
+
+    # Step 2 to Step 5
+    for i in range(d - 1):
+        k = i + 1  # 1, 2, ..., d - 1
+        A = reconstruct(x_dagger, vs[-1 - k], rs[-1 - k])
+        x_dagger = inverse_project(A, np.sin(xi[:, k]), vs[-1 - k], rs[-1 - k])
+
+    return x_dagger
