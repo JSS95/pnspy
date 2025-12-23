@@ -47,7 +47,7 @@ def project(x, v, r):
     Examples
     --------
     >>> from pns.pss import pss
-    >>> from pns.transform import project
+    >>> from pns.transformers import project
     >>> from pns.util import unit_sphere, circular_data
     >>> x = circular_data([0, -1, 0]).reshape(-1, 3)
     >>> v, r = pss(x)
@@ -89,7 +89,7 @@ def inverse_project(xP, res, v, r):
     Examples
     --------
     >>> from pns.pss import pss
-    >>> from pns.transform import project, inverse_project
+    >>> from pns.transformers import project, inverse_project
     >>> from pns.util import unit_sphere, circular_data
     >>> x = circular_data([0, -1, 0])
     >>> v, r = pss(x)
@@ -136,7 +136,7 @@ def embed(x, v, r):
     Examples
     --------
     >>> from pns.pss import pss
-    >>> from pns.transform import embed
+    >>> from pns.transformers import embed
     >>> from pns.util import unit_sphere, circular_data
     >>> x = circular_data([0, -1, 0])
     >>> v, r = pss(x)
@@ -185,7 +185,7 @@ def reconstruct(x, v, r):
     Examples
     --------
     >>> import numpy as np
-    >>> from pns.transform import reconstruct
+    >>> from pns.transformers import reconstruct
     >>> from pns.util import unit_sphere
     >>> t = np.linspace(0, 2 * np.pi, 100)
     >>> x = np.vstack((np.cos(t), np.sin(t))).T
