@@ -12,10 +12,13 @@ from .transform import embed, inverse_project, project, reconstruct
 
 __all__ = [
     "pns",
-    "extrinsic_transform",
-    "inverse_extrinsic_transform",
-    "intrinsic_transform",
-    "inverse_intrinsic_transform",
+    "fit_transform",
+    "transform",
+    "inverse_transform",
+    # "extrinsic_transform",
+    # "inverse_extrinsic_transform",
+    # "intrinsic_transform",
+    # "inverse_intrinsic_transform",
 ]
 
 
@@ -94,6 +97,122 @@ def pns(x, n_components, tol=1e-3, maxiter=None, lm_kwargs=None):
         rs[i] = r
         xis[:, [i]] = xi
     return vs, rs, xis, x.astype(dtype)
+
+
+def fit_transform(
+    X, n_components, type="intrinsic", tol=1e-3, maxiter=None, lm_kwargs=None
+):
+    """Fit PNS and transform data into low-dimensional hypersphere.
+
+    Parameters
+    ----------
+    x : real array of shape (N, d+1)
+        Data on a d-sphere.
+    n_components : int
+        Target dimension.
+    type : {'intrinsic', 'extrinsic'}
+        Type of the output coordinates.
+    tol : float, default=1e-3
+        Convergence tolerance in radians.
+    maxiter : int, optional
+        Maximum number of iterations for the optimization.
+        If None, the number of iterations is not checked.
+    lm_kwargs : dict, optional
+        Additional keyword arguments to be passed for Levenberg-Marquardt optimization.
+        Passed to :func:`pns.pns`.
+
+    Returns
+    -------
+    vs : list of array
+        Principal axes.
+    rs : 1-D array of length (d+1-n_components)
+        Principal geodesic distances.
+    X_transform : array of shape (N, n_components)
+        Transformed data.
+    """
+    if type == "intrinsic":
+        pns_dim = 1
+    else:
+        pns_dim = n_components
+    vs, rs, xi, X_transform = pns(
+        X, pns_dim, tol=tol, maxiter=maxiter, lm_kwargs=lm_kwargs
+    )
+
+    if type == "intrinsic":
+        sin_r = 1
+        for i in range(xi.shape[1] - 1):
+            xi[:, i] *= sin_r
+            sin_r *= np.sin(rs[i])
+        xi[:, -1] *= sin_r
+
+        ret = np.flip(xi, axis=-1)[:, :n_components]
+    else:
+        ret = X_transform
+    return vs, rs, ret
+
+
+def transform(X, vs, rs, n_components, type="intrinsic"):
+    """Transformed data using fitted PNS.
+
+    Parameters
+    ----------
+    X : (N, d+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        embedded in a ``d+1``-dimensional space.
+    vs : list of k real arrays
+        Subsphere axes.
+    rs : list of k scalars
+        Subsphere geodesic distances.
+    n_components : int
+        Target dimension.
+    type : {'intrinsic', 'extrinsic'}
+        Type of the output coordinates.
+
+    Returns
+    -------
+    (N, n_components) real array
+        Extrinsic coordinates of data on a low-dimensional unit hypersphere.
+
+    Notes
+    -----
+    If *type* is ``intrinsic``, ``k`` must be ``d``.
+    If *type* is ``extrinsic``, ``k`` must be at least ``d + 1 - n_components``.
+    """
+    if type == "intrinsic":
+        d = X.shape[1] - 1
+        residuals = []
+
+        sin_r = 1
+        for k in range(1, d):
+            v, r = vs[k - 1], rs[k - 1]
+            P, xi = project(X, v, r)
+            X = embed(P, v, r)
+            Xi = sin_r * xi
+            residuals.append(Xi)
+            sin_r *= np.sin(r)
+
+        v, r = vs[d - 1], rs[d - 1]
+        _, xi = project(X, v, r)
+        Xi = sin_r * xi
+        residuals.append(Xi)
+
+        ret = np.flip(np.concatenate(residuals, axis=-1), axis=-1)[:, :n_components]
+
+    elif type == "extrinsic":
+        k = d + 1 - n_components
+        vs = vs[:k]
+        rs = rs[:k]
+
+        for v, r in zip(vs, rs):
+            P, _ = project(X, v, r)
+            X = embed(P, v, r)
+        ret = X
+
+    return ret
+
+
+def inverse_transform(X, vs, rs, type="intrinsic"):
+    pass
 
 
 def extrinsic_transform(X, vs, rs):
