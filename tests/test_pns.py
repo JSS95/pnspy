@@ -3,11 +3,10 @@ import warnings
 import numpy as np
 
 from pns import (
-    extrinsic_transform,
-    intrinsic_transform,
-    inverse_extrinsic_transform,
-    inverse_intrinsic_transform,
+    fit_transform,
+    inverse_transform,
     pns,
+    transform,
 )
 from pns.pss import pss
 from pns.util import circular_data
@@ -34,17 +33,18 @@ def test_pss_zero_norm_():
 
 
 def test_inverse_intrinsic_transform():
+    n = 1
     X = circular_data([0, -1, 0])
-    vs, rs, _, _ = pns(X, 1)
-    X_transform = intrinsic_transform(X, vs, rs)
-    Xinv = inverse_intrinsic_transform(X_transform, vs, rs)
-    assert np.all(np.isclose(X, Xinv, atol=1e-1))
+    vs, rs, x_transformed = fit_transform(X, n, type="intrinsic")
+    Xinv = inverse_transform(x_transformed, vs, rs, type="intrinsic")
+    X_transform2 = transform(Xinv, vs, rs, n_components=n, type="intrinsic")
+    assert np.all(np.isclose(x_transformed, X_transform2, atol=1e-1))
 
 
 def test_inverse_extrinsic_transform():
+    n = 2
     X = circular_data([0, -1, 0])
-    vs, rs, _, _ = pns(X, 2)
-    X_transform = extrinsic_transform(X, vs, rs)
-    Xinv = inverse_extrinsic_transform(X_transform, vs, rs)
-    X_transform2 = extrinsic_transform(Xinv, vs, rs)
-    assert np.all(np.isclose(X_transform, X_transform2, atol=1e-1))
+    vs, rs, x_transformed = fit_transform(X, n, type="extrinsic")
+    Xinv = inverse_transform(x_transformed, vs, rs, type="extrinsic")
+    X_transform2 = transform(Xinv, vs, rs, n_components=n, type="extrinsic")
+    assert np.all(np.isclose(x_transformed, X_transform2, atol=1e-1))

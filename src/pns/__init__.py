@@ -15,10 +15,6 @@ __all__ = [
     "fit_transform",
     "transform",
     "inverse_transform",
-    # "extrinsic_transform",
-    # "inverse_extrinsic_transform",
-    # "intrinsic_transform",
-    # "inverse_intrinsic_transform",
 ]
 
 
@@ -130,6 +126,32 @@ def fit_transform(
         Principal geodesic distances.
     X_transform : array of shape (N, n_components)
         Coordinates of transformed data on a low-dimensional unit hypersphere.
+
+    Examples
+    --------
+    Extrinsic transformation:
+
+    >>> from pns import fit_transform
+    >>> from pns.util import circular_data
+    >>> x = circular_data([0, -1, 0])
+    >>> _, _, x_transformed = fit_transform(x, n_components=2, type='extrinsic')
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... plt.scatter(*x_transformed.T)
+    ... plt.gca().set_aspect("equal")
+
+    Intrinsic transformation:
+
+    >>> import numpy as np
+    >>> from pns.util import unit_sphere
+    >>> _, _, x_transformed = fit_transform(x, n_components=2, type='intrinsic')
+    >>> fig = plt.figure()  # doctest: +SKIP
+    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+    ... ax1.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+    ... ax1.scatter(*x.T, c=x_transformed[:, 0])
+    ... ax2 = fig.add_subplot(122)
+    ... ax2.scatter(*x_transformed.T, c=x_transformed[:, 0])
+    ... ax2.set_xlim(-np.pi, np.pi)
+    ... ax2.set_ylim(-np.pi/2, np.pi/2)
     """
     if type == "intrinsic":
         pns_dim = 1
@@ -178,9 +200,37 @@ def transform(X, vs, rs, n_components, type="intrinsic"):
     -----
     If *type* is ``intrinsic``, ``k`` must be ``d``.
     If *type* is ``extrinsic``, ``k`` must be at least ``d + 1 - n_components``.
+
+    Examples
+    --------
+    Extrinsic transformation:
+
+    >>> from pns import fit_transform, transform
+    >>> from pns.util import circular_data
+    >>> x = circular_data([0, -1, 0])
+    >>> vs, rs, _ = fit_transform(x, n_components=2, type='extrinsic')
+    >>> x_transformed = transform(x, vs, rs, n_components=2, type='extrinsic')
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... plt.scatter(*x_transformed.T)
+    ... plt.gca().set_aspect("equal")
+
+    Intrinsic transformation:
+
+    >>> import numpy as np
+    >>> from pns.util import unit_sphere
+    >>> vs, rs, _ = fit_transform(x, n_components=2, type='intrinsic')
+    >>> x_transformed = transform(x, vs, rs, n_components=2, type='intrinsic')
+    >>> fig = plt.figure()  # doctest: +SKIP
+    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+    ... ax1.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+    ... ax1.scatter(*x.T, c=x_transformed[:, 0])
+    ... ax2 = fig.add_subplot(122)
+    ... ax2.scatter(*x_transformed.T, c=x_transformed[:, 0])
+    ... ax2.set_xlim(-np.pi, np.pi)
+    ... ax2.set_ylim(-np.pi/2, np.pi/2)
     """
+    d = X.shape[1] - 1
     if type == "intrinsic":
-        d = X.shape[1] - 1
         residuals = []
 
         sin_r = 1
@@ -236,6 +286,32 @@ def inverse_transform(X, vs, rs, type="intrinsic"):
     -----
     If *type* is ``intrinsic``, ``k`` must be ``d``.
     If *type* is ``extrinsic``, ``k`` must be at least ``d + 1 - n_components``.
+
+    Examples
+    --------
+    Extrinsic transformation:
+
+    >>> from pns import fit_transform, inverse_transform
+    >>> from pns.util import circular_data, unit_sphere
+    >>> x = circular_data([0, -1, 0])
+    >>> vs, rs, x_transformed = fit_transform(x, n_components=2, type='extrinsic')
+    >>> x_reconstructed = inverse_transform(x_transformed, vs, rs, type='extrinsic')
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... fig = plt.figure()
+    ... ax = fig.add_subplot(projection='3d', computed_zorder=False)
+    ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax.scatter(*x.T, marker=".", zorder=10)
+    ... ax.scatter(*x_reconstructed.T, marker="x", zorder=10)
+
+    Intrinsic transformation:
+
+    >>> vs, rs, x_transformed = fit_transform(x, n_components=2, type='intrinsic')
+    >>> x_reconstructed = inverse_transform(x_transformed, vs, rs, type='intrinsic')
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
+    ... ax.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+    ... ax.scatter(*x.T, marker="o", zorder=10)
+    ... ax.scatter(*x_reconstructed.T, marker="x", zorder=10)
     """
     if type == "intrinsic":
         Xi = X
@@ -278,207 +354,3 @@ def inverse_transform(X, vs, rs, type="intrinsic"):
             x = reconstruct(x, v, r)
         ret = x
     return ret
-
-
-def extrinsic_transform(X, vs, rs):
-    r"""Transform data to low-dimensional hypersphere in extrinsic coordinates.
-
-    Parameters
-    ----------
-    X : (N, d+1) real array
-        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
-        embedded in a ``d+1``-dimensional space.
-    vs : list of k real arrays
-        Subsphere axes.
-    rs : list of k scalars
-        Subsphere geodesic distances.
-
-    Returns
-    -------
-    (N, d-k+1) real array
-        Extrinsic coordinates of data on a low-dimensional unit hypersphere.
-
-    Examples
-    --------
-    >>> from pns import extrinsic_transform
-    >>> from pns.pss import pss
-    >>> from pns.util import circular_data
-    >>> x = circular_data([0, -1, 0])
-    >>> v, r = pss(x)
-    >>> x_transformed = extrinsic_transform(x, [v], [r])
-    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-    ... plt.scatter(*x_transformed.T)
-    ... plt.gca().set_aspect("equal")
-    """
-    for v, r in zip(vs, rs):
-        P, _ = project(X, v, r)
-        X = embed(P, v, r)
-    return X
-
-
-def inverse_extrinsic_transform(x, vs, rs):
-    """Inverse transformation of :func:`extrinsic_transform`.
-
-    Sends the reduced data to the original dimension.
-
-    Parameters
-    ----------
-    x : (N, d-k+1) real array
-        Extrinsic coordinates of data on a low-dimensional unit hypersphere.
-    vs : list of (m+1,) real arrays
-        Subsphere axes.
-    rs : list of scalars
-        Subsphere geodesic distances.
-
-    Returns
-    -------
-    (N, d+1) real array
-        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
-        embedded in a ``d+1``-dimensional space.
-
-    Examples
-    --------
-    >>> from pns import inverse_extrinsic_transform, extrinsic_transform
-    >>> from pns.pss import pss
-    >>> from pns.util import circular_data, unit_sphere
-    >>> x = circular_data([0, -1, 0])
-    >>> v, r = pss(x)
-    >>> x_transformed = extrinsic_transform(x, [v], [r])
-    >>> x_reconstructed = inverse_extrinsic_transform(x_transformed, [v], [r])
-    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-    ... fig = plt.figure()
-    ... ax = fig.add_subplot(projection='3d', computed_zorder=False)
-    ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax.scatter(*x.T, marker=".", zorder=10)
-    ... ax.scatter(*x_reconstructed.T, marker="x", zorder=10)
-    """
-    for v, r in zip(reversed(vs), reversed(rs)):
-        x = reconstruct(x, v, r)
-    return x
-
-
-def intrinsic_transform(X, vs, rs):
-    r"""Transform data to low-dimensional hypersphere in intrinsic coordinates.
-
-    Parameters
-    ----------
-    X : (N, d+1) real array
-        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
-        embedded in a ``d+1``-dimensional space.
-    vs : list of d real arrays
-        Subsphere axes.
-    rs : list of d scalars
-        Subsphere geodesic distances.
-
-    Returns
-    -------
-    Xi : (N, d) real array
-        Intrinsic coordinates of data on a low-dimensional unit hypersphere.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> from pns import pns, intrinsic_transform
-    >>> from pns.util import unit_sphere, circular_data
-    >>> X = circular_data([0, -1, 0])
-    >>> vs, rs, _, _ = pns(X, 1)
-    >>> Xi = intrinsic_transform(X, vs, rs)[:, :2]  # Get the first two components
-    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-    ... fig = plt.figure()
-    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
-    ... ax1.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
-    ... ax1.scatter(*X.T, c=Xi[:, 0])
-    ... ax2 = fig.add_subplot(122)
-    ... ax2.scatter(*Xi.T, c=Xi[:, 0])
-    ... ax2.set_xlim(-np.pi, np.pi)
-    ... ax2.set_ylim(-np.pi/2, np.pi/2)
-    """
-    d = X.shape[1] - 1
-    residuals = []
-
-    sin_r = 1
-    for k in range(1, d):
-        v, r = vs[k - 1], rs[k - 1]
-        P, xi = project(X, v, r)
-        X = embed(P, v, r)
-        Xi = sin_r * xi
-        residuals.append(Xi)
-        sin_r *= np.sin(r)
-
-    v, r = vs[d - 1], rs[d - 1]
-    _, xi = project(X, v, r)
-    Xi = sin_r * xi
-    residuals.append(Xi)
-
-    ret = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
-    return ret
-
-
-def inverse_intrinsic_transform(Xi, vs, rs):
-    """Inverse of :func:`intrinsic_transform`.
-
-    Sends the reduced data to the original dimension.
-
-    Parameters
-    ----------
-    Xi : (N, n) real array
-        Intrinsic coordinates of data on a low-dimensional unit hypersphere.
-    vs : list of d real arrays
-        Subsphere axes.
-    rs : list of d scalars
-        Subsphere geodesic distances.
-
-    Returns
-    -------
-    X : (N, d+1) real array
-        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
-        embedded in a ``d+1``-dimensional space.
-
-    Examples
-    --------
-    >>> from pns import pns, intrinsic_transform, inverse_intrinsic_transform
-    >>> from pns.util import unit_sphere, circular_data
-    >>> X = circular_data([0, -1, 0])
-    >>> vs, rs, _, _ = pns(X, 1)
-    >>> Xi = intrinsic_transform(X, vs, rs)[:, :1]  # Get the first one component
-    >>> X_inv = inverse_intrinsic_transform(Xi, vs, rs)
-    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-    ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
-    ... ax.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
-    ... ax.scatter(*X.T)
-    ... ax.scatter(*X_inv.T)
-    """
-    _, n = Xi.shape
-    d = len(vs)
-
-    Xi = np.concatenate(
-        [Xi, np.zeros((Xi.shape[0], d - n))], axis=-1
-    )  # Now, each column in Xi is Xi(0), ..., Xi(d-1).
-
-    # Un-scale Xi, i.e., xi(d-k) = Xi(d-k) / prod_{i=1}^{k-1}(sin(r_i)).
-    sin_rs = np.sin(rs[:-1])  # sin(r_1), sin(r_2), ..., sin(r_{d-1})
-    xi = Xi  # xi(0), ..., xi(d-1)
-    prod_sin_r = np.prod(sin_rs)
-    for i in range(d - 1):
-        xi[:, i] /= prod_sin_r
-        prod_sin_r /= sin_rs[-i - 1]
-    xi[:, d - 1] /= prod_sin_r
-
-    # Starting from the lowest dimension,
-    # 1. Convert to cartesian coordinates.
-    # 2. Reconstruct to one higher dimension, with north pole different from v.
-    # 3. Rotate for v.
-    # 4. Un-project with residuals.
-    # 5. Go to 2.
-
-    # Initialize: rotate xi(0) and convert to cartesian
-    xi[:, 0] += extrinsic_to_intrinsic(vs[-1][np.newaxis, ...])[0]
-    x_dagger = intrinsic_to_extrinsic(xi[:, :1])
-
-    # Step 2 to Step 5
-    for i in range(d - 1):
-        k = i + 1  # 1, 2, ..., d - 1
-        A = reconstruct(x_dagger, vs[-1 - k], rs[-1 - k])
-        x_dagger = inverse_project(A, np.sin(xi[:, k]), vs[-1 - k], rs[-1 - k])
-
-    return x_dagger
