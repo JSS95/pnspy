@@ -16,7 +16,7 @@ Module reference
 Data transformation
 -------------------
 
-.. automodule:: pns.transform
+.. automodule:: pns.transformers
     :members:
 
 PSS detection
