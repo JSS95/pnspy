@@ -106,8 +106,9 @@ def fit_transform(
 
     Parameters
     ----------
-    x : real array of shape (N, d+1)
-        Data on a d-sphere.
+    X : real array of shape (N, d+1)
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        embedded in a ``d+1``-dimensional space.
     n_components : int
         Target dimension.
     type : {'intrinsic', 'extrinsic'}
@@ -128,7 +129,7 @@ def fit_transform(
     rs : 1-D array of length (d+1-n_components)
         Principal geodesic distances.
     X_transform : array of shape (N, n_components)
-        Transformed data.
+        Coordinates of transformed data on a low-dimensional unit hypersphere.
     """
     if type == "intrinsic":
         pns_dim = 1
@@ -152,7 +153,7 @@ def fit_transform(
 
 
 def transform(X, vs, rs, n_components, type="intrinsic"):
-    """Transformed data using fitted PNS.
+    """Transform data using the fitted PNS.
 
     Parameters
     ----------
@@ -171,7 +172,7 @@ def transform(X, vs, rs, n_components, type="intrinsic"):
     Returns
     -------
     (N, n_components) real array
-        Extrinsic coordinates of data on a low-dimensional unit hypersphere.
+        Coordinates of transformed data on a low-dimensional unit hypersphere.
 
     Notes
     -----
@@ -212,7 +213,71 @@ def transform(X, vs, rs, n_components, type="intrinsic"):
 
 
 def inverse_transform(X, vs, rs, type="intrinsic"):
-    pass
+    """Inverse-transform data using the fitted PNS.
+
+    Parameters
+    ----------
+    X : (N, n_components) real array
+        Coordinates of transformed data on a low-dimensional unit hypersphere.
+    vs : list of k real arrays
+        Subsphere axes.
+    rs : list of k scalars
+        Subsphere geodesic distances.
+    type : {'intrinsic', 'extrinsic'}
+        Type of the output coordinates.
+
+    Returns
+    -------
+    (N, d+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        embedded in a ``d+1``-dimensional space.
+
+    Notes
+    -----
+    If *type* is ``intrinsic``, ``k`` must be ``d``.
+    If *type* is ``extrinsic``, ``k`` must be at least ``d + 1 - n_components``.
+    """
+    if type == "intrinsic":
+        Xi = X
+        _, n = Xi.shape
+        d = len(vs)
+
+        Xi = np.concatenate(
+            [Xi, np.zeros((Xi.shape[0], d - n))], axis=-1
+        )  # Now, each column in Xi is Xi(0), ..., Xi(d-1).
+
+        # Un-scale Xi, i.e., xi(d-k) = Xi(d-k) / prod_{i=1}^{k-1}(sin(r_i)).
+        sin_rs = np.sin(rs[:-1])  # sin(r_1), sin(r_2), ..., sin(r_{d-1})
+        xi = Xi  # xi(0), ..., xi(d-1)
+        prod_sin_r = np.prod(sin_rs)
+        for i in range(d - 1):
+            xi[:, i] /= prod_sin_r
+            prod_sin_r /= sin_rs[-i - 1]
+        xi[:, d - 1] /= prod_sin_r
+
+        # Starting from the lowest dimension,
+        # 1. Convert to cartesian coordinates.
+        # 2. Reconstruct to one higher dimension, with north pole different from v.
+        # 3. Rotate for v.
+        # 4. Un-project with residuals.
+        # 5. Go to 2.
+
+        # Initialize: rotate xi(0) and convert to cartesian
+        xi[:, 0] += extrinsic_to_intrinsic(vs[-1][np.newaxis, ...])[0]
+        x_dagger = intrinsic_to_extrinsic(xi[:, :1])
+
+        # Step 2 to Step 5
+        for i in range(d - 1):
+            k = i + 1  # 1, 2, ..., d - 1
+            A = reconstruct(x_dagger, vs[-1 - k], rs[-1 - k])
+            x_dagger = inverse_project(A, np.sin(xi[:, k]), vs[-1 - k], rs[-1 - k])
+        ret = x_dagger
+    else:
+        x = X
+        for v, r in zip(reversed(vs), reversed(rs)):
+            x = reconstruct(x, v, r)
+        ret = x
+    return ret
 
 
 def extrinsic_transform(X, vs, rs):
